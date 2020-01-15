@@ -62,54 +62,44 @@ ch_output_docs = Channel.fromPath("$baseDir/docs/output.md")
 /*
  * Create a channel for input read files
  */
-if (params.spectra)
-{
-    if (params.spectra instanceof String) {
-        in_is_raw = hasExtension(params.spectra, 'raw')
-        in_is_mzml = hasExtension(params.spectra, 'mzML')
-    } else if (params.spectra instanceof List){
-        in_is_raw = hasExtension(params.spectra.first(), 'raw')
-        in_is_mzml = hasExtension(params.spectra.first(), 'mzML')
-    } else {
-      log.error "Specify list or wildcard string"
-    }
 
-    if (in_is_raw){
-        channel
-            .fromPath(params.spectra)
-            .ifEmpty { exit 1, "params.spectra was empty - no input files supplied" }
-            .into { rawfiles }
+ch_spectra = Channel.fromPath(params.spectra, checkIfExists: true)
+if (!params.spectra) { exit 1, "Please provide --spectra as input!" }
 
-        process raw_file_conversion {
+//use a branch operator for this sort of thing and access the files accordingly!
 
-            input:
-             file rawfile from rawfiles
-
-            output:
-             file "*.mzML" into mzmls, mzmls_plfq
-
-            when:
-             in_is_raw
-         
-            script:
-             """
-             mv ${rawfile} ${rawfile.baseName}.mzML
-             """
-        }
-    }
-    else if (in_is_mzml) {
-            Channel
-                .fromPath(params.spectra)
-                .ifEmpty { exit 1, "params.spectra was empty - no input files supplied" }
-                .into { mzmls; mzmls_plfq}
-    }
-    else {
-        log.error "Unsupported spectra file type"
-    }
+ch_spectra
+.branch {
+        raw: hasExtension(it, 'raw')
+        mzML_for_mix: hasExtension(it, 'mzML')
 }
-else {
-    log.error "No spectra provided"
+.set {branched_input}
+
+//Push raw files through process that does the conversion, everything else directly to downstream Channel with mzMLs
+
+
+//This piece only runs on data that is a.) raw and b.) needs conversion
+//mzML files will be mixed after this step to provide output for downstream processing - allowing you to even specify mzMLs and RAW files in a mixed mode as input :-) 
+
+
+process raw_file_conversion {
+
+    input:
+        file rawfile from branched_input.raw
+
+    output:
+        file "*.mzML" into mzmls_converted
+    
+    script:
+        """
+        mv ${rawfile} ${rawfile.baseName}.mzML
+        """
 }
+
+//Mix the converted raw data with the already supplied mzMLs and push these to the same channels as before
+
+branched_input.mzML_for_mix.mix(mzmls_converted).into {mzmls, mzmls_plfq}
+
 
 if (params.expdesign)
 {
