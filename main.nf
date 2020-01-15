@@ -98,7 +98,7 @@ process raw_file_conversion {
 
 //Mix the converted raw data with the already supplied mzMLs and push these to the same channels as before
 
-branched_input.mzML_for_mix.mix(mzmls_converted).into {mzmls, mzmls_plfq}
+branched_input.mzML_for_mix.mix(mzmls_converted).into{mzmls, mzmls_plfq}
 
 
 if (params.expdesign)
@@ -106,7 +106,7 @@ if (params.expdesign)
     Channel
         .fromPath(params.expdesign)
         .ifEmpty { exit 1, "params.expdesign was empty - no input files supplied" }
-        .into { expdesign }
+        .into{ expdesign }
 }
 
 
