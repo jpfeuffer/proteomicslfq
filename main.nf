@@ -109,23 +109,25 @@ if (params.expdesign)
         .into{ expdesign }
 }
 
+//Create channel from database, then depending on when add decoys or not
+Channel.fromPath(params.database).set{ db_for_decoy_creation }
 
+//Fill the channels with empty Channels in case that we want to add decoys. Otherwise fill with output from database.
+(searchengine_in_db, pepidx_in_db, plfq_in_db) = ( params.adddecoys
+                    ? [ Channel.empty(), Channel.empty(), Channel.empty() ]
+                    : [ Channel.fromPath(params.database),Channel.fromPath(params.database), Channel.fromPath(params.database)  ] )   
 
-Channel
-    .fromPath(params.database)
-    .ifEmpty { exit 1, "params.database was empty - no input files supplied" }
-    .into { searchengine_in_db; pepidx_in_db; plfq_in_db; db_for_decoy_creation }
-
+//Add decoys if params.adddecoys is set appropriately
 process generate_decoy_database {
 
 input:
     file(mydatabase) from db_for_decoy_creation
 
 output:
-    file "${database.baseName}_decoy.fasta" into searchengine_in_db, pepidx_in_db, plfq_in_db
+    file "${database.baseName}_decoy.fasta" into searchengine_in_db_decoy, pepidx_in_db_decoy, plfq_in_db_decoy
+    //TODO need to add these channel with .mix(searchengine_in_db_decoy) for example to all subsequent processes that need this...
 
-when:
-    !params.database
+when: params.adddecoys
 
 script:
     """
@@ -135,8 +137,6 @@ script:
                 -decoy_string_position prefix
     """
 }
-
-
 
 // Test
 //process generate_simple_exp_design_file {
@@ -182,7 +182,7 @@ script:
 process search_engine {
 
     input:
-     file database from searchengine_in_db.first()
+     file database from searchengine_in_db.first().mix(searchengine_in_db_decoy)
      file mzml_file from mzmls
 
     output:
