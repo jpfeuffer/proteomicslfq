@@ -111,34 +111,31 @@ if (params.expdesign)
 
 
 
-if (params.database) {
-    Channel
-        .fromPath(params.database)
-        .ifEmpty { exit 1, "params.database was empty - no input files supplied" }
-        .into { searchengine_in_db; pepidx_in_db; plfq_in_db }
-}
-else {
-    //WHY IS THE WHEN: NOT ENOUGH??
-    process generate_decoy_database {
+Channel
+    .fromPath(params.database)
+    .ifEmpty { exit 1, "params.database was empty - no input files supplied" }
+    .into { searchengine_in_db; pepidx_in_db; plfq_in_db; db_for_decoy_creation }
 
-    input:
-     file mydatabase from params.database
+process generate_decoy_database {
 
-    output:
-     file "${database.baseName}_decoy.fasta" into searchengine_in_db, pepidx_in_db, plfq_in_db
-    
-    when:
-     !params.database
- 
-    script:
-     """
-     DecoyDatabase  -in ${mydatabase} \\
-                    -out ${mydatabase.baseName}_decoy.fasta \\
-                    -decoy_string DECOY_ \\
-                    -decoy_string_position prefix
-     """
-    }
+input:
+    file(mydatabase) from db_for_decoy_creation
+
+output:
+    file "${database.baseName}_decoy.fasta" into searchengine_in_db, pepidx_in_db, plfq_in_db
+
+when:
+    !params.database
+
+script:
+    """
+    DecoyDatabase  -in ${mydatabase} \\
+                -out ${mydatabase.baseName}_decoy.fasta \\
+                -decoy_string DECOY_ \\
+                -decoy_string_position prefix
+    """
 }
+
 
 
 // Test
