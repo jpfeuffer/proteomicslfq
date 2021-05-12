@@ -74,6 +74,14 @@ if (tocheck.toLowerCase().endsWith("sdrf") || tocheck.toLowerCase().endsWith("ts
   sdrf_file = params.input
 } else if (tocheck.toLowerCase().endsWith("mzml") || tocheck.toLowerCase().endsWith("raw")) {
   spectra_files = params.input
+} else if tocheck ==~ /^PXD\d{5,8}$/){
+  def get = new URL("https://www.ebi.ac.uk/pride/ws/archive/v2/files/sdrfByProjectAccession?accession=" + params.input).openConnection();
+  def getRC = get.getResponseCode();
+  println(getRC);
+  if (!getRC.equals(200)) {
+      log.error "PXD identifier given but PRIDE API responded with code " + getRC + ". Check https://www.ebi.ac.uk/pride/ws/archive/v2/files/sdrfByProjectAccession?accession=" + params.input ; exit 1
+  }
+  sdrf_file = "https://www.ebi.ac.uk/pride/ws/archive/v2/files/sdrfByProjectAccession?accession=" + params.input
 } else {
   log.error "EITHER spectra data (mzML/raw) OR an SDRF needs to be provided as input."; exit 1
 }
