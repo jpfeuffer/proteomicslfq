@@ -93,7 +93,7 @@ params.outdir = params.outdir ?: { log.warn "No output directory provided. Will 
  * Create a channel for input files
  */
 
- // Filename        FixedModifications      VariableModifications   Label   PrecursorMassTolerance  PrecursorMassToleranceUnit      FragmentMassTolerance   DissociationMethod      Enzyme
+ //Filename        FixedModifications      VariableModifications   Label   PrecursorMassTolerance  PrecursorMassToleranceUnit      FragmentMassTolerance   DissociationMethod      Enzyme
 
 
 if (!sdrf_file)
